@@ -1,0 +1,17 @@
+services:
+  iroha:
+    image: hyperledger/iroha:latest
+    ports:
+      - 50051:50051
+    volumes:
+      - ./data:/opt/iroha_data
+    entrypoint:
+      - irohad
+      - --genesis_block
+      - genesis.block
+      - --config
+      - config.json
+      - --keypair_name
+      - node0
+      - --drop_state
+      - --overwrite_ledger

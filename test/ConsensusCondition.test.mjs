@@ -47,7 +47,7 @@ describe('Iroha consensus', () => {
   afterAll(async () => {
     // noinspection JSCheckFunctionSignatures use of URL instead of file
     await down({ cwd: new URL('.', import.meta.url) });
-  });
+  }, 30000);
 
   // Checking that Iroha has initialised and has a genesis block
   test('get genesis block', async () => {
@@ -78,8 +78,8 @@ describe('Iroha consensus', () => {
   describe('with m-ld clone', () => {
     let /**@type import('net').Server*/mqttBroker;
     let /**@type import('aedes').Aedes}*/mqttHandler;
-    let /**@type MeldClone*/genesis;
-    let /**@type MeldMqttConfig*/config;
+    let /**@type import('@m-ld/m-ld').MeldClone*/genesis;
+    let /**@type import('@m-ld/m-ld/dist/mqtt').MeldMqttConfig*/config;
     let /**@type MeldIrohaApp*/app;
 
     beforeAll(done => {

@@ -4,8 +4,7 @@ import {
 } from 'iroha-helpers/lib/proto/endpoint_grpc_pb.js';
 import { cryptoHelper, queries } from 'iroha-helpers/lib/index.js';
 import { describe, expect, test } from '@jest/globals';
-import { TxBuilder } from 'iroha-helpers/lib/chain.js';
-import { ConsensusCondition, initIrohaMeldDomain } from '..';
+import { ConsensusCondition, IrohaMeldDomain } from '..';
 import { down, upAll } from 'docker-compose';
 import { randomBytes } from 'crypto';
 import { readFileSync } from 'fs';
@@ -16,6 +15,8 @@ import { MqttRemotes } from '@m-ld/m-ld/dist/mqtt';
 import { MeldMemDown } from '@m-ld/m-ld/dist/memdown';
 import { Statutory } from '@m-ld/m-ld/dist/constraints/Statutory';
 import { PropertyShape } from '@m-ld/m-ld/dist/shacl';
+import { fork } from 'child_process';
+import { fileURLToPath } from 'url';
 
 const IROHA_ADDRESS = 'localhost:50051';
 const adminPriv = /**@type string*/readFileSync(
@@ -23,7 +24,7 @@ const adminPriv = /**@type string*/readFileSync(
 const txHashPattern = /^[\da-f]{32,}$/;
 
 describe('Iroha consensus', () => {
-  let commandService, queryService, aliceKeys, proofKey;
+  let commandService, queryService, aliceKeys, proofKey, irohaDomain;
 
   beforeAll(async () => {
     // noinspection JSCheckFunctionSignatures use of URL instead of file
@@ -33,9 +34,14 @@ describe('Iroha consensus', () => {
     const params = [IROHA_ADDRESS, grpc.credentials.createInsecure()];
     commandService = new CommandService(...params);
     queryService = new QueryService(...params);
+    irohaDomain = new IrohaMeldDomain({
+      domainId: 'test.m-ld.org',
+      adminId: 'admin@test',
+      adminEd25519PrivateKey: adminPriv,
+      commandService
+    });
     aliceKeys = cryptoHelper.generateKeyPair();
     proofKey = randomBytes(8).toString('hex');
-    console.log(aliceKeys); // For debugging
   }, 30000);
 
   afterAll(async () => {
@@ -57,17 +63,10 @@ describe('Iroha consensus', () => {
   });
 
   // Initialisation with domain, account and first signatory
+  // NOTE this test is necessary setup for the following suite
   test('initialise blockchain with m-ld domain', async () => {
-    const txRes = await initIrohaMeldDomain({
-      '@id': randomBytes(8).toString('hex'),
-      '@domain': 'test.m-ld.org',
-      genesis: true
-    }, {
-      commandService,
-      queryService,
-      adminId: 'admin@test',
+    const txRes = await irohaDomain.initialise({
       defaultRole: 'user',
-      adminEd25519PrivateKey: adminPriv,
       firstPrincipalEd25519PublicKey: aliceKeys.publicKey
     });
     expect(txRes.txHash).toEqual([
@@ -77,22 +76,24 @@ describe('Iroha consensus', () => {
   });
 
   describe('with m-ld clone', () => {
-    let /**@type Server*/mqttBroker;
+    let /**@type import('net').Server*/mqttBroker;
+    let /**@type import('aedes').Aedes}*/mqttHandler;
     let /**@type MeldClone*/genesis;
     let /**@type MeldMqttConfig*/config;
     let /**@type MeldIrohaApp*/app;
 
     beforeAll(done => {
       // Create MQTT broker for clone-clone communication
-      const mqttHandler = new aedes();
+      mqttHandler = new aedes();
       mqttBroker = createServer(mqttHandler.handle);
       mqttBroker.listen(1883, async () => {
         // Create genesis clone
         config = {
-          '@id': randomBytes(8).toString('hex'),
+          '@id': 'AliceClone',
           '@domain': 'test.m-ld.org',
           genesis: true,
-          mqtt: { host: 'localhost', port: 1883 }
+          mqtt: { host: 'localhost', port: 1883 },
+          logLevel: 'DEBUG'
         };
         app = {
           // Alice is the genesis user
@@ -116,7 +117,7 @@ describe('Iroha consensus', () => {
     });
 
     afterAll(done => {
-      mqttBroker.close(done);
+      mqttHandler.close(() => mqttBroker.close(done));
     });
 
     // This test creates an explicit consensus condition, instead of declaring
@@ -147,7 +148,7 @@ describe('Iroha consensus', () => {
             Statutory.declare(0),
             Statutory.declareStatute({
               statutoryShapes: [PropertyShape.declare('invoice-state')],
-              sufficientConditions: ConsensusCondition.declare()
+              sufficientConditions: ConsensusCondition.declare('iroha-condition', process.cwd())
             })
           ]
         });
@@ -176,51 +177,43 @@ describe('Iroha consensus', () => {
         });
         genesis.write({ '@id': 'my-invoice', 'invoice-state': 'ALICE' });
       });
-    });
-  });
 
-  // Pattern for proving agreement (creating proof to attach to agreement)
-  test.skip('prove agreement', async () => {
-    const txRes = await new TxBuilder()
-      .setAccountDetail({
-        accountId: 'clone@test.m-ld.org',
-        key: proofKey,
-        // Iroha does not properly escape JSON!
-        value: JSON.stringify(JSON.stringify({
-          // Principal ID
-          pid: 'alice',
-          // Agreed final state of statutes
-          state: {
-            '@id': 'my-invoice',
-            'invoice-state': 'ordered'
-          }
-        })).slice(1, -1)
-      })
-      .addMeta('clone@test.m-ld.org', 1)
-      .sign([aliceKeys.privateKey])
-      .send(commandService);
-    expect(txRes.txHash).toEqual([
-      expect.stringMatching(txHashPattern)
-    ]);
-  });
-
-  // Pattern for testing agreement (verifying the proof)
-  test.skip('test agreement proof', async () => {
-    const res = await queries.getAccountDetail({
-      privateKey: aliceKeys.privateKey,
-      creatorAccountId: 'clone@test.m-ld.org',
-      queryService,
-      timeoutLimit: 5000
-    }, {
-      accountId: 'clone@test.m-ld.org',
-      key: proofKey,
-      pageSize: 1,
-      paginationKey: proofKey,
-      paginationWriter: 'clone@test.m-ld.org'
-    });
-    expect(JSON.parse(res['clone@test.m-ld.org'][proofKey])).toEqual({
-      // See previous test
-      pid: 'alice', state: { '@id': 'my-invoice', 'invoice-state': 'ordered' }
+      test('proves at remote clone', async () => {
+        const bobKeys = cryptoHelper.generateKeyPair();
+        await irohaDomain.registerPrincipal(bobKeys.publicKey, aliceKeys.privateKey);
+        const bobProcess = fork(
+          fileURLToPath(new URL('./bobClone.mjs', import.meta.url)),
+          [IROHA_ADDRESS, bobKeys.privateKey], { timeout: 10000 });
+        return new Promise((resolve, reject) => {
+          const updatesSeen = [];
+          bobProcess.on('message', async msg => {
+            if (msg === 'ready') {
+              try {
+                await genesis.write({ '@id': 'fred', name: 'Fred' });
+                await genesis.write({ '@id': 'my-invoice', 'invoice-state': 'ALICE' });
+              } catch (e) {
+                reject(e);
+              }
+            } else if (typeof msg == 'object' && '@insert' in msg) {
+              const i = updatesSeen.push(msg);
+              if (i === 1) {
+                expect(msg).toMatchObject({
+                  '@insert': [{ '@id': 'fred', name: 'Fred' }],
+                  '@principal': { '@id': 'https://alice.example/profile#me' }
+                });
+              } else if (i === 2) {
+                expect(msg).toMatchObject({
+                  '@insert': [{ '@id': 'my-invoice', 'invoice-state': 'ALICE' }],
+                  '@principal': { '@id': 'https://alice.example/profile#me' },
+                  '@agree': expect.stringMatching(/pk_[\da-f]{32}/)
+                });
+                bobProcess.send('close');
+                resolve();
+              }
+            }
+          });
+        });
+      }, 20000);
     });
   });
 });

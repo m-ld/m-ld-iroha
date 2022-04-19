@@ -45,7 +45,7 @@ Since the basis for agreements and statutes was established in the [previous pro
 
 ### next steps
 
-As an append-only ledger with strong cryptographic binding of users to records, Hyperledger Iroha provides a natural candidate technology for the next stage of security prototyping, [**traceability**](https://github.com/m-ld/m-ld-security-spec/issues/3), in which it will be put to work as an audit logging system. Challenges will include how to ensure that the audit trail is both complete and not overwhelmed by high-frequency updates arising in **m-ld** – e.g. per-keypress.
+As an append-only ledger with strong cryptographic binding of users to records, Hyperledger Iroha provides a natural candidate technology for the next stage of security prototyping, [**traceability**](https://github.com/m-ld/m-ld-security-spec/issues/3), in which it will be put to work as an audit logging system. Challenges will include how to ensure that the audit trail is both complete and not overwhelmed by high-frequency updates arising in **m-ld** – e.g. per-keypress. This will also provide an opportunity to expand the testing of the consensus agreement condition.
 
 ### other future possibilities
 

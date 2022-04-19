@@ -66,3 +66,7 @@ The [ConsensusCondition test](./test/ConsensusCondition.test.mjs) is an integrat
 - Iroha documentation: https://iroha.readthedocs.io/en/main/index.html
 - Iroha Javascript client library: https://github.com/hyperledger/iroha-javascript
 - YAC: BFT Consensus Algorithm for Blockchain (used by Iroha): https://arxiv.org/pdf/1809.00554
+
+part of the [m-ld project](https://m-ld.org/) <img alt="m-ld" src="https://m-ld.org/m-ld.svg" width="200em" />
+
+supported by [NLnet](https://nlnet.nl/project/m-ld/) <img alt="m-ld" src="https://m-ld.org/media/logo_nlnet.svg" />

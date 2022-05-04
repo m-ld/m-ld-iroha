@@ -3,7 +3,7 @@ export default {
   moduleFileExtensions: ['mjs', 'js'],
   testRegex: `test\.mjs$`,
   moduleNameMapper: {
-    '@m-ld/m-ld/dist/(.*)': '<rootDir>/node_modules/@m-ld/m-ld/dist/$1',
+    '@m-ld/m-ld/ext/(.*)': '<rootDir>/node_modules/@m-ld/m-ld/ext/$1',
     '@m-ld/m-ld-iroha': '<rootDir>'
   }
 };

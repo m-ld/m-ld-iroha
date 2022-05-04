@@ -4,7 +4,7 @@
   "description": "m-ld extensions using Iroha",
   "main": "index.js",
   "scripts": {
-    "test": "docker info > /dev/null 2>&1 && NODE_OPTIONS=--experimental-vm-modules jest"
+    "test": "docker info && NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "repository": {
     "type": "git",
@@ -23,7 +23,7 @@
     "jest": "^27.5.1"
   },
   "dependencies": {
-    "@m-ld/m-ld": "^0.9.0-0",
+    "@m-ld/m-ld": "^0.9.0-1",
     "async-mqtt": "^2.6.2",
     "grpc": "^1.24.11",
     "iroha-helpers": "^1.3.0",

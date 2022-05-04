@@ -11,10 +11,10 @@ import { readFileSync } from 'fs';
 import aedes from 'aedes';
 import { createServer } from 'net';
 import { clone } from '@m-ld/m-ld';
-import { MqttRemotes } from '@m-ld/m-ld/dist/mqtt';
-import { MeldMemDown } from '@m-ld/m-ld/dist/memdown';
-import { Statutory } from '@m-ld/m-ld/dist/constraints/Statutory';
-import { PropertyShape } from '@m-ld/m-ld/dist/shacl';
+import { MqttRemotes } from '@m-ld/m-ld/ext/mqtt';
+import { MeldMemDown } from '@m-ld/m-ld/ext/memdown';
+import { Statutory } from '@m-ld/m-ld/ext/constraints/Statutory';
+import { PropertyShape } from '@m-ld/m-ld/ext/shacl';
 import { fork } from 'child_process';
 import { fileURLToPath } from 'url';
 
@@ -79,7 +79,7 @@ describe('Iroha consensus', () => {
     let /**@type import('net').Server*/mqttBroker;
     let /**@type import('aedes').Aedes}*/mqttHandler;
     let /**@type import('@m-ld/m-ld').MeldClone*/genesis;
-    let /**@type import('@m-ld/m-ld/dist/mqtt').MeldMqttConfig*/config;
+    let /**@type import('@m-ld/m-ld/ext/mqtt').MeldMqttConfig*/config;
     let /**@type MeldIrohaApp*/app;
 
     beforeAll(done => {

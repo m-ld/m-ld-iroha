@@ -3,8 +3,8 @@ import {
   CommandService_v1Client as CommandService, QueryService_v1Client as QueryService
 } from 'iroha-helpers/lib/proto/endpoint_grpc_pb.js';
 import { clone } from '@m-ld/m-ld';
-import { MqttRemotes } from '@m-ld/m-ld/dist/mqtt';
-import { MeldMemDown } from '@m-ld/m-ld/dist/memdown';
+import { MqttRemotes } from '@m-ld/m-ld/ext/mqtt';
+import { MeldMemDown } from '@m-ld/m-ld/ext/memdown';
 
 const [, , irohaAddress, bobPrivateKey] = process.argv;
 const params = [irohaAddress, grpc.credentials.createInsecure()];
